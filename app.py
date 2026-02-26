@@ -1,3 +1,5 @@
+import eventlet
+eventlet.monkey_patch()
 import os
 import csv
 import json
@@ -42,11 +44,14 @@ CLASS_LABELS_JSON = os.path.join(BASE_DIR, "models", "class_labels.json")
 app = Flask(__name__)
 app.secret_key = "supersecretkey123"
 
-socketio = SocketIO(
-    app,
-    async_mode="eventlet",
-    cors_allowed_origins="*"
-)
+socketio = SocketIO(app, cors_allowed_origins="*")
+@socketio.on('connect')
+def start_background_once():
+    global _bg_started
+    if not globals().get("_bg_started"):
+        _bg_started = True
+        print("Starting sensor refresher safely...")
+        socketio.start_background_task(sensor_cache_refresher)
 
 # ---------------------------------------------------
 # LOAD MODEL
@@ -182,6 +187,3 @@ def handle_connect():
 # ---------------------------------------------------
 # RUN (Render uses PORT env variable)
 # ---------------------------------------------------
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host="0.0.0.0", port=port)
