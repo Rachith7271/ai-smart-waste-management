@@ -1,0 +1,108 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Live Waste Camera</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;display:flex;flex-direction:column;align-items:center;padding:18px}
+    #video{width:640px;height:480px;border-radius:8px;background:#000}
+    #canvas{display:none}
+    .overlay{margin-top:12px}
+    .label{font-size:1.2rem;font-weight:700;color:#2e7d32}
+    .controls{margin-top:8px;display:flex;gap:8px}
+    button{padding:8px 12px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer}
+  </style>
+</head>
+<body>
+  <h2>Live Waste Classifier</h2>
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" width="224" height="224"></canvas>
+
+  <div class="overlay">
+    <div class="label" id="result">Waiting for camera...</div>
+    <div>Confidence: <span id="conf">-</span></div>
+    <div class="controls">
+      <button id="start">Start</button>
+      <button id="stop">Stop</button>
+      <label style="display:inline-flex;align-items:center;gap:6px;padding-left:6px;">
+        Interval(ms):
+        <input id="intervalInput" type="number" value="200" style="width:80px;margin-left:6px">
+      </label>
+    </div>
+  </div>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const resultEl = document.getElementById('result');
+const confEl = document.getElementById('conf');
+const startBtn = document.getElementById('start');
+const stopBtn = document.getElementById('stop');
+const intervalInput = document.getElementById('intervalInput');
+
+let streaming = false;
+let timerId = null;
+
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false });
+    video.srcObject = stream;
+    await video.play();
+    streaming = true;
+    runLoop();
+  } catch (err) {
+    resultEl.textContent = 'Camera error: ' + err.message;
+  }
+}
+
+function stopCamera() {
+  streaming = false;
+  const tracks = video.srcObject ? video.srcObject.getTracks() : [];
+  tracks.forEach(t => t.stop());
+  video.srcObject = null;
+  if (timerId) {
+    clearTimeout(timerId);
+    timerId = null;
+  }
+}
+
+async function runLoop() {
+  if (!streaming) return;
+  // centered square crop -> canvas 224x224
+  const w = video.videoWidth, h = video.videoHeight;
+  const size = Math.min(w, h);
+  const sx = (w - size) / 2, sy = (h - size) / 2;
+  ctx.drawImage(video, sx, sy, size, size, 0, 0, canvas.width, canvas.height);
+
+  // send as multipart/form with 'frame' field (jpeg)
+  canvas.toBlob(async function(blob) {
+    const form = new FormData();
+    form.append('frame', blob, 'frame.jpg');
+    try {
+      const res = await fetch('/api/classify_frame', { method: 'POST', body: form });
+      if (!res.ok) {
+        resultEl.textContent = 'Server error';
+      } else {
+        const data = await res.json();
+        resultEl.textContent = data.label || 'Unknown';
+        confEl.textContent = (data.confidence || 0).toFixed(2);
+      }
+    } catch (e) {
+      console.error('fetch error', e);
+      resultEl.textContent = 'Network error';
+    }
+  }, 'image/jpeg', 0.7);
+
+  const interval = Math.max(50, Number(intervalInput.value) || 200);
+  timerId = setTimeout(() => {
+    if (streaming) runLoop();
+  }, interval);
+}
+
+startBtn.addEventListener('click', () => { if(!streaming) startCamera(); });
+stopBtn.addEventListener('click', () => stopCamera());
+</script>
+</body>
+</html>

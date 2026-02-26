@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Waste Forecasting</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+        .container { width: 500px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; }
+        form { text-align: center; margin-top: 20px; }
+        input[type="number"], select { padding: 8px; margin: 10px; width: 80%; }
+        input[type="submit"] { padding: 10px 20px; border: none; background: #4CAF50; color: white; cursor: pointer; border-radius: 5px; }
+        .result { margin-top: 20px; font-size: 18px; text-align: center; }
+        .link { text-align: center; margin-top: 20px; }
+        a { text-decoration: none; color: #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Waste Forecasting</h1>
+        <form method="POST">
+            <input type="number" name="year" placeholder="Enter Year" required>
+            <br>
+            <select name="area" required>
+                <option value="">-- Select Area --</option>
+                <option value="Area A">Area A</option>
+                <option value="Area B">Area B</option>
+                <option value="Area C">Area C</option>
+            </select>
+            <br>
+            <input type="submit" value="Forecast">
+        </form>
+
+        {% if forecast %}
+        <div class="result">
+            <strong>Result:</strong> {{ forecast }}
+        </div>
+        {% endif %}
+
+        <div class="link">
+            <a href="/">Go to Waste Classification</a>
+        </div>
+    </div>
+</body>
+</html>

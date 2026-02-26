@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Route Optimization</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    h2 {
+      background: #2b7a78;
+      color: white;
+      padding: 15px;
+      margin: 0;
+    }
+    #map {
+      height: 80vh;
+      width: 100%;
+    }
+    #controls {
+      padding: 10px;
+      background-color: #def2f1;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    button {
+      background: #3aafa9;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover {
+      background: #2b7a78;
+    }
+  </style>
+</head>
+<body>
+  <h2>🚛 Waste Collection Route Optimization</h2>
+
+  <div id="controls">
+    <button id="optimizeBtn">Optimize Route</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+  
+  <div id="map"></div>
+
+  <script>
+    const map = L.map("map").setView([12.9716, 77.5946], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    let points = [];
+    let markers = [];
+    let routeLine = null;
+
+    // Add marker when clicking on map
+    map.on("click", function (e) {
+      const { lat, lng } = e.latlng;
+      const marker = L.marker([lat, lng]).addTo(map);
+      markers.push(marker);
+      points.push([lng, lat]); // GeoJSON order [lon, lat]
+    });
+
+    // Optimize Route
+    document.getElementById("optimizeBtn").addEventListener("click", async () => {
+      if (points.length < 2) {
+        alert("Please select at least 2 locations to optimize the route.");
+        return;
+      }
+
+      const res = await fetch("/optimize_route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ points }),
+      });
+
+      const data = await res.json();
+
+      if (data.features) {
+        const coords = data.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+        if (routeLine) map.removeLayer(routeLine);
+        routeLine = L.polyline(coords, { color: "green", weight: 4 }).addTo(map);
+        map.fitBounds(routeLine.getBounds());
+      } else {
+        alert("Error fetching optimized route.");
+        console.error(data);
+      }
+    });
+
+    // Reset Map
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      markers.forEach(m => map.removeLayer(m));
+      markers = [];
+      points = [];
+      if (routeLine) map.removeLayer(routeLine);
+    });
+  </script>
+</body>
+</html>

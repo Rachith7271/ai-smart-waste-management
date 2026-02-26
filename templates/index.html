@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Smart Waste Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+s
+    <style>
+        body {
+            background: #f8f9fa;
+            overflow-x: hidden;
+        }
+        .hero {
+            background: linear-gradient(135deg, #00b894, #55efc4);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 10px;
+            animation: fadeInDown 1s ease-in-out;
+        }
+        .card {
+            border-radius: 15px;
+            animation: fadeInUp 1s ease-in-out;
+        }
+        .btn-green {
+            background-color: #0037b8ff;
+            color: white;
+        }
+        .btn-green:hover {
+            background-color: #019870;
+        }
+        footer {
+            background-color: #00b894;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            margin-top: 30px;
+        }
+        /* Loading overlay */
+        #loadingOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 22px;
+            flex-direction: column;
+        }
+        .spinner {
+            width: 70px;
+            height: 70px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #00b894;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        /* Animations */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<!-- ✅ Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="/">♻ Smart Waste System</a>
+        <div class="d-flex">
+            <a href="/dashboard" class="btn btn-light btn-sm mx-1">Dashboard</a>
+            <a href="/gis" class="btn btn-light btn-sm mx-1">GIS Map</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ✅ Hero Section -->
+<div class="container mt-4">
+    <div class="hero">
+        <h1 class="fw-bold">AI-Powered Smart Waste Management System</h1>
+        <p>Classify waste using AI and forecast waste generation with predictive analytics.</p>
+    </div>
+</div>
+
+<!-- ✅ Main Section -->
+<div class="container mt-5">
+    <div class="row g-4">
+
+        <!-- 🧠 Waste Classification -->
+        <div class="col-md-6">
+            <div class="card shadow p-4">
+                <h4 class="text-success mb-3">Waste Classification</h4>
+                <form id="classificationForm" action="/" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="image" class="form-label">Upload Waste Image</label>
+                        <input type="file" class="form-control" name="image" required>
+                    </div>
+                    <button type="submit" class="btn btn-green w-100">Classify Waste</button>
+                </form>
+
+               {% if prediction %}
+<div class="alert alert-success mt-4">
+    <h5>🧾 Classification Result:</h5>
+    <p><b>Type:</b> {{ prediction }}</p>
+    <p><b>Recommended Disposal:</b> {{ disposal_method }}</p>
+</div>
+
+{% if disposal_video and disposal_video|length > 0 %}
+<div class="video-section" style="margin-top: 25px; text-align:center;">
+    <h3>Learn how to dispose {{ prediction }} waste properly:</h3>
+    
+    <!-- Button to trigger modal -->
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#videoModal">
+        Watch Related Videos 🎥
+    </button>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="videoModal" tabindex="-1" aria-labelledby="videoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="videoModalLabel">{{ prediction }} Waste Disposal Videos</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        {% for video in disposal_video %}
+        <iframe width="560" height="315"
+            src="{{ video }}"
+            title="Waste Disposal Guide"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            style="margin: 10px;">
+        </iframe>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+
+
+
+        <!-- 📊 Waste Forecasting -->
+        <div class="col-md-6">
+            <div class="card shadow p-4">
+                <h4 class="text-success mb-3">Waste Forecasting</h4>
+                <form id="forecastForm" action="/forecast" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Select Area</label>
+                        <input type="text" class="form-control" name="area" placeholder="e.g., Downtown" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Enter Year</label>
+                        <input type="number" class="form-control" name="year" placeholder="e.g., 2025" required>
+                    </div>
+                    <button type="submit" class="btn btn-green w-100">Predict Waste</button>
+                </form>
+
+                {% if forecast %}
+                <div class="alert alert-info mt-4">
+                    <h5>📈 Forecast Result:</h5>
+                    <p><b>Predicted Waste:</b> {{ forecast }} kg</p>
+                    {% if area and year %}
+                    <p><b>Area:</b> {{ area }} | <b>Year:</b> {{ year }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 🌀 Loading Overlay -->
+<div id="loadingOverlay">
+    <div class="spinner"></div>
+    <p>Processing... Please wait ⏳</p>
+</div>
+
+<!-- ✅ Footer -->
+<footer class="mt-5">
+    <p>Developed with 💚 by Rachith P | AI-Powered Waste Management System</p>
+</footer>
+
+<script>
+    // Show loading overlay when forms are submitted
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    document.getElementById('classificationForm').addEventListener('submit', () => {
+        loadingOverlay.style.display = 'flex';
+    });
+    document.getElementById('forecastForm').addEventListener('submit', () => {
+        loadingOverlay.style.display = 'flex';
+    });
+</script>
+
+</body>
+</html>

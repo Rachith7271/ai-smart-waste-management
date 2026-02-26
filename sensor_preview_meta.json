@@ -1,0 +1,128 @@
+{
+  "device_ids": [
+    "BIN_Koramangala_01",
+    "BIN_Indiranagar_01",
+    "BIN_Whitefield_01",
+    "BIN_Jayanagar_01",
+    "BIN_ElectronicCity_01",
+    "BIN_HSRLayout_01",
+    "BIN_Malleswaram_01",
+    "BIN_Basavanagudi_01",
+    "BIN_SarjapurRoad_01",
+    "BIN_Rajajinagar_01",
+    "BIN_Marathahalli_01",
+    "BIN_Bellandur_01",
+    "BIN_Banashankari_01",
+    "BIN_Sadashivanagar_01",
+    "BIN_Hebbal_01",
+    "BIN_BTMLayout_01",
+    "BIN_Ulsoor_01",
+    "BIN_FrazerTown_01",
+    "BIN_JPNagar_01",
+    "BIN_Devanahalli_01"
+  ],
+  "coords": {
+    "Koramangala": [
+      12.9352,
+      77.6245
+    ],
+    "Indiranagar": [
+      12.9719,
+      77.638
+    ],
+    "Whitefield": [
+      12.9699,
+      77.749
+    ],
+    "Jayanagar": [
+      12.925,
+      77.5938
+    ],
+    "Electronic City": [
+      12.8444,
+      77.6601
+    ],
+    "HSR Layout": [
+      12.918,
+      77.6229
+    ],
+    "Malleswaram": [
+      13.0067,
+      77.5709
+    ],
+    "Basavanagudi": [
+      12.9485,
+      77.574
+    ],
+    "Sarjapur Road": [
+      12.9141,
+      77.7198
+    ],
+    "Rajajinagar": [
+      13.001,
+      77.548
+    ],
+    "Marathahalli": [
+      12.9591,
+      77.6979
+    ],
+    "Bellandur": [
+      12.9352,
+      77.6784
+    ],
+    "Banashankari": [
+      12.9172,
+      77.5636
+    ],
+    "Sadashivanagar": [
+      13.0046,
+      77.5739
+    ],
+    "Hebbal": [
+      13.0358,
+      77.597
+    ],
+    "BTM Layout": [
+      12.9165,
+      77.6101
+    ],
+    "Ulsoor": [
+      12.9775,
+      77.6168
+    ],
+    "Frazer Town": [
+      12.9941,
+      77.6192
+    ],
+    "J.P. Nagar": [
+      12.9151,
+      77.5745
+    ],
+    "Devanahalli": [
+      13.1986,
+      77.709
+    ]
+  },
+  "areas": [
+    "Koramangala",
+    "Indiranagar",
+    "Whitefield",
+    "Jayanagar",
+    "Electronic City",
+    "HSR Layout",
+    "Malleswaram",
+    "Basavanagudi",
+    "Sarjapur Road",
+    "Rajajinagar",
+    "Marathahalli",
+    "Bellandur",
+    "Banashankari",
+    "Sadashivanagar",
+    "Hebbal",
+    "BTM Layout",
+    "Ulsoor",
+    "Frazer Town",
+    "J.P. Nagar",
+    "Devanahalli"
+  ]
+}

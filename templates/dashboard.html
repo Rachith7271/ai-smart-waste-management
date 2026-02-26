@@ -1,0 +1,275 @@
+<!-- templates/dashboard.html -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Smart Waste Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <style>
+    body { background: #f6f9f6; }
+    .card { border-radius: 12px; }
+    #map { height: 420px; width: 100%; border-radius: 8px; }
+    .sensor-row { cursor: pointer; }
+    .badge-critical { background:#d32f2f; }
+    .badge-warning { background:#f57c00; color:#fff; }
+    .badge-ok { background:#2e7d32; color:#fff; }
+    #toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 1060; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-success">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">♻ Smart Waste Dashboard</a>
+    <div class="d-flex">
+      <a href="/gis" class="btn btn-light btn-sm mx-1">GIS Map</a>
+      <a href="/forecast" class="btn btn-light btn-sm mx-1">Forecast</a>
+      <a href="/classify" class="btn btn-light btn-sm mx-1">Classify</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container my-4">
+  <div class="row g-3">
+    <!-- Waste charts -->
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h6 class="mb-2">Total Waste by Area</h6>
+        <canvas id="wasteChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h6 class="mb-2">Monthly / Yearly Trend</h6>
+        <canvas id="trendChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <!-- Map + Sensor list -->
+    <div class="col-lg-8">
+      <div class="card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">Sensors Map (Live)</h6>
+          <div>
+            <button id="refresh-sensor" class="btn btn-sm btn-outline-secondary">Refresh</button>
+            <button id="toggle-assigned" class="btn btn-sm btn-outline-primary">Show Assigned</button>
+          </div>
+        </div>
+        <div id="map"></div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card p-3">
+        <h6 class="mb-2">Live Sensors</h6>
+        <div class="table-responsive" style="max-height:410px; overflow:auto;">
+          <table class="table table-sm table-hover align-middle">
+            <thead>
+              <tr><th>Node</th><th>Area</th><th>Fill</th><th>Last</th></tr>
+            </thead>
+            <tbody id="sensor-table-body">
+              <!-- rows populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top areas table -->
+    <div class="col-12">
+      <div class="card p-3">
+        <h6 class="mb-2">Top 5 Waste Generating Areas</h6>
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead class="table-success"><tr><th>Area</th><th>Total Waste (kg)</th></tr></thead>
+            <tbody>
+              {% for a in top_areas %}
+                <tr><td>{{ a.area }}</td><td>{{ a.total_waste }}</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+  // --- Config & initial data passed from server ---
+  const initialWasteData = {{ waste_data|tojson }};
+  const initialTrend = {{ trend_data|tojson }};
+  const initialSensors = {{ sensor_summary|tojson }} || [];
+
+  // --- Chart: waste by area ---
+  const wasteCtx = document.getElementById('wasteChart');
+  const areaLabels = initialWasteData.map(x => x.area || x.Area);
+  const areaValues = initialWasteData.map(x => x.total_waste || x.Total_Waste || 0);
+  const wasteChart = new Chart(wasteCtx, {
+    type: 'bar',
+    data: { labels: areaLabels, datasets: [{ label: 'Total Waste (kg)', data: areaValues, backgroundColor: 'rgba(46,125,50,0.7)' }] },
+    options: { responsive: true, scales: { y: { beginAtZero: true } } }
+  });
+
+  // --- Chart: trend ---
+  const trendCtx = document.getElementById('trendChart');
+  const trendLabels = initialTrend.map(r => r.year || r.Year || r.date || r.Date);
+  const trendValues = initialTrend.map(r => r.waste_generated || r.Waste_Amount || r.Waste_Generated || 0);
+  const trendChart = new Chart(trendCtx, {
+    type: 'line',
+    data: { labels: trendLabels, datasets: [{ label: 'Waste Generated', data: trendValues, borderColor: 'green', fill:true, tension:0.3 }] },
+    options: { responsive: true }
+  });
+
+  // --- Leaflet map + markers ---
+  const map = L.map('map', { scrollWheelZoom: false }).setView([12.9716,77.5946], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom: 19 }).addTo(map);
+  const markers = {}; // node_id -> marker
+
+  function getBadgeByFill(fill) {
+    if (fill >= 90) return '<span class="badge badge-critical">Critical</span>';
+    if (fill >= 70) return '<span class="badge badge-warning">Warning</span>';
+    return '<span class="badge badge-ok">OK</span>';
+  }
+
+  // add or update marker
+  function upsertMarker(sensor) {
+    if (!sensor.node_id) return;
+    const id = sensor.node_id;
+    const lat = sensor.lat, lon = sensor.lon;
+    const fill = Number(sensor.fill_level_pct || 0).toFixed(1);
+    const popup = `<b>${sensor.node_id}</b><br>${sensor.area || ''}<br>Fill: ${fill}% ${getBadgeByFill(fill)}<br>Last: ${sensor.last_seen || ''}`;
+
+    if (markers[id]) {
+      markers[id].setLatLng([lat, lon]);
+      markers[id].setPopupContent(popup);
+      markers[id].options.fill = fill;
+    } else {
+      if (lat && lon) {
+        const m = L.circleMarker([lat, lon], { radius:10, color: fill >= 90 ? '#d32f2f' : (fill >=70 ? '#f57c00' : '#2e7d32'), fillOpacity:0.8 }).addTo(map);
+        m.bindPopup(popup);
+        markers[id] = m;
+      }
+    }
+  }
+
+  // update sensor table view
+  function renderSensorTable(list) {
+    const tbody = document.getElementById('sensor-table-body');
+    tbody.innerHTML = '';
+    const sorted = list.sort((a,b)=> (b.fill_level_pct||0) - (a.fill_level_pct||0));
+    sorted.forEach(s => {
+      const tr = document.createElement('tr');
+      tr.className = 'sensor-row';
+      tr.innerHTML = `<td>${s.node_id}</td><td>${s.area||''}</td><td>${Number(s.fill_level_pct||0).toFixed(1)}% ${getBadgeByFill(s.fill_level_pct)}</td><td style="font-size:12px">${s.last_seen?new Date(s.last_seen).toLocaleString():'-'}</td>`;
+      tr.onclick = ()=> { if (markers[s.node_id]) { map.setView(markers[s.node_id].getLatLng(), 16); markers[s.node_id].openPopup(); } };
+      tbody.appendChild(tr);
+    });
+  }
+
+  // initial population
+  function initSensors(arr) {
+    arr.forEach(s => {
+      upsertMarker(s);
+    });
+    renderSensorTable(arr);
+  }
+  initSensors(initialSensors);
+
+  // --- WebSocket (Socket.IO) ---
+  const socket = io();
+
+  socket.on('connect', () => {
+    console.log('Socket connected');
+  });
+
+  socket.on('sensor_update', (payload) => {
+    // payload: node_id, area, lat, lon, fill_level_pct, timestamp...
+    console.log('sensor_update', payload);
+    // update map marker & table
+    upsertMarker(payload);
+    // update or insert into local table list
+    const idx = initialSensors.findIndex(x=>x.node_id === payload.node_id);
+    if (idx === -1) {
+      initialSensors.push(payload);
+    } else {
+      initialSensors[idx] = payload;
+    }
+    renderSensorTable(initialSensors);
+
+    // show alert toast if thresholds crossed
+    const fill = Number(payload.fill_level_pct || 0);
+    if (fill >= 70) {
+      const level = fill >= 90 ? 'Critical' : 'Warning';
+      showToast(`${level}: ${payload.node_id} in ${payload.area} is at ${fill.toFixed(1)}%`, fill >= 90 ? 'danger' : 'warning');
+    }
+  });
+
+  // manual refresh button (calls API)
+  document.getElementById('refresh-sensor').addEventListener('click', async ()=>{
+    await fetchLatestSummary();
+  });
+
+  async function fetchLatestSummary() {
+    try {
+      const r = await fetch('/api/sensor/latest_summary');
+      const json = await r.json();
+      if (Array.isArray(json)) {
+        initialSensors.length = 0;
+        json.forEach(s=>initialSensors.push(s));
+        // update markers
+        json.forEach(s=> upsertMarker(s) );
+        renderSensorTable(initialSensors);
+      } else {
+        console.warn('latest_summary returned', json);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // toast helper
+  function showToast(message, level='info', ttl=6000) {
+    const container = document.getElementById('toast-container');
+    const id = 'toast-'+Date.now();
+    const toastHtml = document.createElement('div');
+    toastHtml.className = 'toast align-items-center text-bg-'+(level=='danger'?'danger':(level=='warning'?'warning':'success'))+' border-0';
+    toastHtml.setAttribute('role','alert');
+    toastHtml.setAttribute('aria-live','assertive');
+    toastHtml.setAttribute('aria-atomic','true');
+    toastHtml.innerHTML = `<div class="d-flex"><div class="toast-body">${message}</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button></div>`;
+    container.appendChild(toastHtml);
+    const bs = new bootstrap.Toast(toastHtml, { delay: ttl });
+    bs.show();
+    toastHtml.addEventListener('hidden.bs.toast', ()=> toastHtml.remove());
+  }
+
+  // initial fetch if socket didn't deliver initial sensors
+  if (!initialSensors || initialSensors.length === 0) {
+    fetchLatestSummary();
+  }
+
+  // toggle assigned placeholder (no auth in this build; just toggles filtering empty)
+  document.getElementById('toggle-assigned').addEventListener('click', ()=>{
+    // if you have assigned_areas list from server, implement filter here.
+    showToast('Assigned-area filtering is a placeholder — add session assigned_areas to enable.', 'info', 2500);
+  });
+
+</script>
+</body>
+</html>

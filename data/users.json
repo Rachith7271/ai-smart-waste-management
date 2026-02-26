@@ -1,0 +1,14 @@
+[
+  {
+    "username": "admin",
+    "password": "admin123",
+    "role": "admin",
+    "assigned_areas": []
+  },
+  {
+    "username": "consumer1",
+    "password": "consumer123",
+    "role": "consumer",
+    "assigned_areas": ["Koramangala", "Indiranagar"]
+  }
+]
