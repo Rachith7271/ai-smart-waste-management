@@ -86,14 +86,18 @@ def home():
 @app.route("/classify", methods=["GET", "POST"])
 def classify():
 
-    if request.method == "POST":
-        # temporary demo response
-        return jsonify({
-            "label": "Organic",
-            "confidence": 0.95
-        })
+    prediction = None
+    confidence = None
 
-    return render_template("classify.html")
+    if request.method == "POST":
+        prediction = "Organic"
+        confidence = 0.95
+
+    return render_template(
+        "classify.html",
+        prediction=prediction,
+        confidence=confidence
+    )
 
 
 # ✅ DASHBOARD (NO TEMPLATE ERRORS)
@@ -110,16 +114,28 @@ def dashboard():
 
 
 # ✅ FORECAST (SAFE VERSION)
-@app.route("/forecast")
+@app.route("/forecast", methods=["GET", "POST"])
 def forecast():
+
+    forecast_value = None
+    error = None
+
+    if request.method == "POST":
+        area = request.form.get("area")
+        days = request.form.get("days")
+
+        if not area or not days:
+            error = "Please provide area and days."
+        else:
+            forecast_value = 250  # temporary demo value
+
     return render_template(
         "forecast.html",
-        forecast=None,
+        forecast=forecast_value,
         labels=[],
         data=[],
-        error=None
+        error=error
     )
-
 
 # ✅ GIS PAGE
 @app.route("/gis")
