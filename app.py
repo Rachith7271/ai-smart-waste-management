@@ -133,7 +133,9 @@ def classify():
         })
 
     return render_template("classify.html")
-
+@app.route("/forecast")
+def forecast():
+    return render_template("forecast.html")
 @app.route("/dashboard")
 def dashboard():
     return render_template(
