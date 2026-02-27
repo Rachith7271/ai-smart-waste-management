@@ -119,6 +119,9 @@ def home():
 @app.route("/forecast")
 def forecast():
     return render_template("forecast.html")
+@app.route("/gis")
+def gis():
+    return render_template("gis.html")
 
 @app.route("/dashboard")
 def dashboard():
