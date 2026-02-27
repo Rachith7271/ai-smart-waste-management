@@ -1,6 +1,7 @@
 import eventlet
 eventlet.monkey_patch()
-
+import joblib
+from tensorflow.keras.models import load_model
 import os
 import csv
 import datetime
@@ -83,20 +84,60 @@ def home():
 
 
 # ✅ CLASSIFY (SAFE MODE — NO MODEL CRASH)
+classification_model = None
+
+def get_model():
+    global classification_model
+    if classification_model is None:
+        try:
+            classification_model = load_model(
+                os.path.join(BASE_DIR, "models", "waste_classifier.h5"),
+                compile=False
+            )
+            print("✅ AI Model Loaded")
+        except Exception as e:
+            print("❌ Model load error:", e)
+            classification_model = None
+    return classification_model
+
+
 @app.route("/classify", methods=["GET", "POST"])
 def classify():
 
     prediction = None
     confidence = None
+    error = None
 
     if request.method == "POST":
-        prediction = "Organic"
-        confidence = 0.95
+
+        if "image" not in request.files:
+            error = "No image uploaded"
+        else:
+            file = request.files["image"]
+
+            img = Image.open(file).convert("RGB")
+            img = img.resize((224, 224))
+
+            arr = np.array(img).astype(np.float32) / 255.0
+            arr = np.expand_dims(arr, axis=0)
+
+            model = get_model()
+
+            if model is None:
+                error = "Model not available"
+            else:
+                preds = model.predict(arr)[0]
+                idx = int(np.argmax(preds))
+                confidence = float(np.max(preds))
+
+                labels = ["Organic", "Recyclable", "Hazardous", "E-Waste", "Other"]
+                prediction = labels[idx]
 
     return render_template(
         "classify.html",
         prediction=prediction,
-        confidence=confidence
+        confidence=confidence,
+        error=error
     )
 
 
@@ -114,26 +155,67 @@ def dashboard():
 
 
 # ✅ FORECAST (SAFE VERSION)
+import joblib
+
+forecast_model = None
+area_encoder = None
+
+def load_forecast_model():
+    global forecast_model, area_encoder
+
+    if forecast_model is None:
+        try:
+            forecast_model = joblib.load(
+                os.path.join(BASE_DIR, "models", "waste_forecast_model.pkl")
+            )
+            area_encoder = joblib.load(
+                os.path.join(BASE_DIR, "models", "area_encoder.pkl")
+            )
+            print("✅ Forecast model loaded")
+        except Exception as e:
+            print("❌ Forecast model load error:", e)
+            forecast_model = None
+            area_encoder = None
+
+
 @app.route("/forecast", methods=["GET", "POST"])
 def forecast():
 
     forecast_value = None
+    labels = []
+    data = []
     error = None
 
     if request.method == "POST":
+
         area = request.form.get("area")
         days = request.form.get("days")
 
-        if not area or not days:
-            error = "Please provide area and days."
-        else:
-            forecast_value = 250  # temporary demo value
+        try:
+            days = int(days)
+            load_forecast_model()
+
+            if forecast_model is None or area_encoder is None:
+                error = "Forecast model not available"
+            else:
+                encoded_area = area_encoder.transform([area])[0]
+
+                X_input = np.array([[encoded_area, d] for d in range(1, days + 1)])
+
+                y_pred = forecast_model.predict(X_input)
+
+                forecast_value = float(np.sum(y_pred))
+                labels = [f"Day {i}" for i in range(1, days + 1)]
+                data = y_pred.tolist()
+
+        except Exception as e:
+            error = str(e)
 
     return render_template(
         "forecast.html",
         forecast=forecast_value,
-        labels=[],
-        data=[],
+        labels=labels,
+        data=data,
         error=error
     )
 
