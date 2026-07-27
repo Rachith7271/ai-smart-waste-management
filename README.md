@@ -1,4 +1,10 @@
 # ♻️ AI Smart Waste Management System
+![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
+![Flask](https://img.shields.io/badge/Flask-Web%20Framework-black?logo=flask)
+![TensorFlow](https://img.shields.io/badge/TensorFlow-Deep%20Learning-orange?logo=tensorflow)
+![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-green?logo=opencv)
+![MySQL](https://img.shields.io/badge/MySQL-Database-blue?logo=mysql)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
 An AI-powered Smart Waste Management System that uses **Machine Learning**, **Computer Vision**, and **Flask** to classify waste, monitor smart bins, forecast waste generation, and assist in efficient waste collection.
 
