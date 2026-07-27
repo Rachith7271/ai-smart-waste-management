@@ -1,10 +1,15 @@
 # ♻️ AI Smart Waste Management System
+
 ![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python)
 ![Flask](https://img.shields.io/badge/Flask-Web%20Framework-black?logo=flask)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-Deep%20Learning-orange?logo=tensorflow)
 ![OpenCV](https://img.shields.io/badge/OpenCV-Computer%20Vision-green?logo=opencv)
 ![MySQL](https://img.shields.io/badge/MySQL-Database-blue?logo=mysql)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+
+<p align="center">
+  <img src="docs/banner.png" alt="AI Smart Waste Management Banner" width="100%">
+</p>
 
 An AI-powered Smart Waste Management System that uses **Machine Learning**, **Computer Vision**, and **Flask** to classify waste, monitor smart bins, forecast waste generation, and assist in efficient waste collection.
 
@@ -28,6 +33,16 @@ This project aims to improve traditional waste management by combining Artificia
 
 ---
 
+## 🏗️ Project Architecture
+
+<p align="center">
+  <img src="docs/architecture.png" width="900">
+</p>
+## 🔄 Project Workflow
+
+<p align="center">
+  <img src="docs/workflow.png" width="900">
+</p>
 ## 🛠 Tech Stack
 
 ### Backend
